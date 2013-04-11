@@ -1,7 +1,7 @@
 export(calc_prebs)
 importClassesFrom(GenomicRanges,GRanges)
 importClassesFrom(IRanges,IRanges)
-importFrom(Rsamtools,readBamGappedAlignments)
+importFrom(Rsamtools,readGAlignmentsFromBam)
 importFrom(affy,getCdfInfo)
 importFrom(affy,xy2indices)
 importFrom(methods,setClass)

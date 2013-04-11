@@ -20,7 +20,7 @@
 #'
 #' The package has only one public function: \code{calc_prebs}. 
 #' Type help(calc_prebs) for more information on the usage.
-#' @importFrom Rsamtools readBamGappedAlignments
+#' @importFrom Rsamtools readGAlignmentsFromBam
 #' @importFrom stats optim
 #' @importFrom parallel parLapply
 #' @importFrom methods setClass setMethod
@@ -89,7 +89,7 @@ granges_from_cdf <- function(probe_mapping_file, CDF_NAME) {
 ## Read a single BAM file and count overlaps with probe regions
 read_bam_and_count_overlaps <- function(bam_file, probe_ranges) {
   #library(Rsamtools)
-  bam_aligns <- readBamGappedAlignments(bam_file)
+  bam_aligns <- readGAlignmentsFromBam(bam_file)
   counts <- countOverlaps(probe_ranges, bam_aligns)
   rm(bam_aligns)
   gc()
