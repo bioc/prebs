@@ -209,7 +209,7 @@ setMethod("initialize", "CDFName", function(.Object, name) {
 setMethod("cdfName", "CDFName", function(object) object@cdfName)
 
 ## Extract necessary information from CDF files and perform RMA algorithm
-perform_rma <- function(probe_table, CDF_NAME) {
+perform_rma <- function(probe_table, CDF_NAME, output_eset) {
   # Get CDF environment containing information about perfect match probe ids
   cdn <- new("CDFName", CDF_NAME)
   cdf_env <- getCdfInfo(cdn)
@@ -247,11 +247,17 @@ perform_rma <- function(probe_table, CDF_NAME) {
   prebs_values <- .Call("rma_c_complete_copy", probe_table_mapped, pNList, ngenes, normalize, background, bgversion, verbose, PACKAGE = "affy")
 
   # Save the results
-  prebs_values <- as.data.frame(prebs_values)
   colnames(prebs_values) <- colnames(probe_table)
-  prebs_values$ID <- substr(rownames(prebs_values), 1, nchar(rownames(prebs_values))-3) # remove trailing _at from identifiers
-  rownames(prebs_values) <- 1:nrow(prebs_values)
-  
+
+  if (output_eset) {
+    rownames(prebs_values) <- substr(rownames(prebs_values), 1, nchar(rownames(prebs_values))-3) # remove trailing _at from identifiers
+    prebs_values <- new("ExpressionSet", annotation = CDF_NAME, exprs = prebs_values)
+  } else {
+    prebs_values <- as.data.frame(prebs_values)
+    prebs_values$ID <- substr(rownames(prebs_values), 1, nchar(rownames(prebs_values))-3) 
+    rownames(prebs_values) <- 1:nrow(prebs_values)
+  }
+
   return(prebs_values)
 }
 
@@ -263,7 +269,9 @@ perform_rma <- function(probe_table, CDF_NAME) {
 #' @details
 #' \code{calc_prebs} is the main function of \code{prebs} package that implements the whole
 #' pipeline. The function takes mapped reads in BAM format and probe sequence
-#' mappings as an input and produces PREBS values as an output.
+#' mappings as an input. The output depends on \code{output_eset} option. If \code{output_eset=TRUE} then
+#' \code{calc_prebs} returns ExpressionSet object  (ExpressionSet object is defined in
+#' \code{affy} package). Otherwise it returns a data frame containing PREBS values.
 #'
 #' For running \code{calc_prebs} with custom CDF, the custom CDF package has to be 
 #' downloaded and installed from Custom CDF website:   
@@ -280,7 +288,8 @@ perform_rma <- function(probe_table, CDF_NAME) {
 #' @param probe_mapping_file A file containing probe mappings in the genome. 
 #' @param cdf_name A name of CDF package to use in RMA algorithm. If cdf_name=NULL, the package name is inferred from the name of probe_mapping_file ("HGU133Plus2_Hs_ENSG_mapping.txt" -> "hgu133plus2hsensgcdf")
 #' @param cluster A cluster object created using "makeCluster" function from "parellel" package. If cluster=NULL, no parallelization is used.
-#' @return A data frame containing PREBS values for each of the bam files provided
+#' @param output_eset If set to TRUE, the output of \code{calc_prebs} will be ExpressionSet object. Otherwise, the output will be a data frame.
+#' @return ExpressionSet object or a data frame containing PREBS values
 #' @export
 #' @examples 
 #' if (require(prebsdata)) {
@@ -308,6 +317,10 @@ perform_rma <- function(probe_table, CDF_NAME) {
 #'     
 #'     # Run PREBS using another custom CDF
 #'     prebs_values <- calc_prebs(bam_files, custom_cdf_mapping2)
+#'     
+#'     # Run PREBS and return ExpressionSet object instead of a data frame
+#'     prebs_values <- calc_prebs(bam_files, custom_cdf_mapping1, output_eset=TRUE)
+#'     head(exprs(prebs_values))
 #'   }
 #'
 #'   # Run PREBS using Manufacturer's CDF (outputs probe set expressions)
@@ -318,7 +331,7 @@ perform_rma <- function(probe_table, CDF_NAME) {
 #'   prebs_values <- calc_prebs(bam_files, manufacturer_cdf_mapping, cdf_name="hgu133plus2cdf")
 #' }
 
-calc_prebs <- function(bam_files, probe_mapping_file, cdf_name = NULL, cluster = NULL) {
+calc_prebs <- function(bam_files, probe_mapping_file, cdf_name = NULL, cluster = NULL, output_eset=FALSE) {
   if (is.null(cdf_name)) {
     cdf_name <- cdf_package_name(probe_mapping_file) # Get CDF package name from the filename of cdf mapping file
   }
@@ -330,7 +343,7 @@ calc_prebs <- function(bam_files, probe_mapping_file, cdf_name = NULL, cluster =
 
   probe_table <- probe_table_expressions(probe_table) # Convert raw probe region counts to probe region expressions using statistical model
   
-  prebs_values <- perform_rma(probe_table, cdf_name) # Perform RMA on probe region expressions
+  prebs_values <- perform_rma(probe_table, cdf_name, output_eset) # Perform RMA on probe region expressions
   
   return(prebs_values)
 }

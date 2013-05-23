@@ -3,7 +3,7 @@
 \title{Calculate PREBS values}
 \usage{
   calc_prebs(bam_files, probe_mapping_file,
-    cdf_name = NULL, cluster = NULL)
+    cdf_name = NULL, cluster = NULL, output_eset = FALSE)
 }
 \arguments{
   \item{bam_files}{A vector containing .bam files.}
@@ -20,10 +20,14 @@
   \item{cluster}{A cluster object created using
   "makeCluster" function from "parellel" package. If
   cluster=NULL, no parallelization is used.}
+
+  \item{output_eset}{If set to TRUE, the output of
+  \code{calc_prebs} will be ExpressionSet object.
+  Otherwise, the output will be a data frame.}
 }
 \value{
-  A data frame containing PREBS values for each of the bam
-  files provided
+  ExpressionSet object or a data frame containing PREBS
+  values
 }
 \description{
   \code{calc_prebs} calculates PREBS values for given set
@@ -33,8 +37,12 @@
   \code{calc_prebs} is the main function of \code{prebs}
   package that implements the whole pipeline. The function
   takes mapped reads in BAM format and probe sequence
-  mappings as an input and produces PREBS values as an
-  output.
+  mappings as an input. The output depends on
+  \code{output_eset} option. If \code{output_eset=TRUE}
+  then \code{calc_prebs} returns ExpressionSet object
+  (ExpressionSet object is defined in \code{affy} package).
+  Otherwise it returns a data frame containing PREBS
+  values.
 
   For running \code{calc_prebs} with custom CDF, the custom
   CDF package has to be downloaded and installed from
@@ -75,6 +83,10 @@ if (require(prebsdata)) {
 
     # Run PREBS using another custom CDF
     prebs_values <- calc_prebs(bam_files, custom_cdf_mapping2)
+
+    # Run PREBS and return ExpressionSet object instead of a data frame
+    prebs_values <- calc_prebs(bam_files, custom_cdf_mapping1, output_eset=TRUE)
+    head(exprs(prebs_values))
   }
 
   # Run PREBS using Manufacturer's CDF (outputs probe set expressions)
