@@ -76,7 +76,8 @@ manufacturer_cdf_mapping <- system.file(file.path("manufacturer-cdf",
 @ 
 
 \subsection{Running \calcprebs{} using Custom CDF}
-The \prebs{} package contains only one public function---\calcprebs{}. The most basic usage of \calcprebs{} is running it in Custom CDF mode without parallelization.
+The \prebs{} package contains only one public function---\calcprebs{}. The most basic usage of \calcprebs{} is running it in Custom CDF mode without parallelization. The default output format of \calcprebs{} is ExpressionSet object defined in \Rpackage{affy} package. The expression values can be accessed using \Rfunction{exprs} function from \Rpackage{affy} package.
+
 \begin{Schunk}
 \begin{Sinput}
 > prebs_values <- calc_prebs(bam_files, custom_cdf_mapping1)
@@ -86,20 +87,20 @@ Normalizing
 Calculating Expression
 \end{Soutput}
 \begin{Sinput}
-> head(prebs_values)
+> head(exprs(prebs_values))
 \end{Sinput}
 \begin{Soutput}
-    input1.bam  input2.bam              ID
-1  -0.09732937   2.5349354 ENSG00000000003
-2 -16.74714400 -16.7471440 ENSG00000000005
-3   0.20247325   2.1548047 ENSG00000000419
-4  -2.36504282   2.7223640 ENSG00000000457
-5  -2.50450888   0.0162755 ENSG00000000460
-6  -2.29065921   3.7272059 ENSG00000000938
+                input1.bam input2.bam
+ENSG00000000003   4.480645   4.035863
+ENSG00000000005 -13.313919 -13.313919
+ENSG00000000419   4.224720   4.224720
+ENSG00000000457   2.611877   4.196825
+ENSG00000000460   2.111514   2.300766
+ENSG00000000938   2.325804   5.073020
 \end{Soutput}
 \end{Schunk}
 
-Above we can see the expressions of the first few genes with Ensembl gene identifiers. In this example, the expression level of at least one of the genes is negligible (the expression values are in log$_2$ scale, so expression of -16.7 means that absolute gene expression is close to zero). In fact, most of the other genes that are not shown here also have a negligible expression level, because we designed our sample BAM files so that they contain only mapped reads from the region of the first few genes. Of course, for a real world analysis mapped reads from all of the genes are needed. However, real world BAM files take a lot of disk space, so it was not possible to include them in the sample data set.
+Above we can see the expressions of the first few genes with Ensembl gene identifiers. In this example, the expression level of at least one of the genes is negligible (the expression values are in log$_2$ scale). In fact, most of the other genes that are not shown here also have a negligible expression level, because we designed our sample BAM files so that they contain only mapped reads from the region of the first few genes. Of course, for a real world analysis mapped reads from all of the genes are needed. However, real world BAM files take a lot of disk space, so it was not possible to include them in the sample data set.
 
 Since in this case we did not provide explicit CDF package name, the name was inferred from the probe sequence mapping filename ("\texttt{custom-cdf/HGU133Plus2\_Hs\_ENSG\_mapping.txt}" -> \Rpackage{hgu133plus2hsensgcdf}). Both probe sequence mapping file and custom CDF package can be downloaded from Custom CDF website: \\
 \url{http://brainarray.mbni.med.umich.edu/brainarray/Database/CustomCDF/genomic_curated_CDF.asp}
@@ -110,7 +111,33 @@ In particular, this example uses Ensembl custom CDF package for and \texttt{HGU1
 And the corresponding description archive containing probe sequence mapping file can be downloaded here:\\
 \url{http://brainarray.mbni.med.umich.edu/Brainarray/Database/CustomCDF/16.0.0/ensg.download/HGU133Plus2_Hs_ENSG_16.0.0.zip}
 
-\subsection{Running \calcprebs{} using Custom CDF with parallelization}
+\subsection{Setting \calcprebs{} output format to a data frame}
+
+By default \calcprebs{} outputs an ExpressionSet object with PREBS values. If you prefer to have a data frame as an output, you can set \texttt{output\_eset} option to FALSE.
+
+\begin{Schunk}
+\begin{Sinput}
+> prebs_values <- calc_prebs(bam_files, custom_cdf_mapping1, output_eset=FALSE)
+\end{Sinput}
+\begin{Soutput}
+Normalizing
+Calculating Expression
+\end{Soutput}
+\begin{Sinput}
+> head(prebs_values)
+\end{Sinput}
+\begin{Soutput}
+  input1.bam input2.bam              ID
+1   4.480645   4.035863 ENSG00000000003
+2 -13.313919 -13.313919 ENSG00000000005
+3   4.224720   4.224720 ENSG00000000419
+4   2.611877   4.196825 ENSG00000000457
+5   2.111514   2.300766 ENSG00000000460
+6   2.325804   5.073020 ENSG00000000938
+\end{Soutput}
+\end{Schunk}
+
+\subsection{Running \calcprebs{} with parallelization}
 Now let's run the same task with a simple parallelization. The results will be identical to the ones above.
 << eval=FALSE >>=
 library("parallel")
@@ -135,7 +162,7 @@ Running \calcprebs{} with manufacturer's CDF is not so much different either. Al
 
 <<>>=
 prebs_values <- calc_prebs(bam_files, manufacturer_cdf_mapping)
-head(prebs_values)
+head(exprs(prebs_values))
 @
 
 As mentioned before, manufacturer's CDF mode gives probe set expressions as an output. In the above example, you can see the the expression values for the first few probe sets of our example data set.
