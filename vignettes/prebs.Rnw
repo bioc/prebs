@@ -1,6 +1,6 @@
 %\VignetteIndexEntry{prebs User Guide}
 %\VignetteKeywords{RNA-sequencing, gene expression microarrays, comparability}
-%\VignetteDepends{Rsamtools, GenomicRanges, affy, methods, stats, IRanges, hgu133plus2cdf}
+%\VignetteDepends{GenomicRanges, affy, methods, stats, IRanges, hgu133plus2cdf}
 %\VignettePackage{prebs}
 \documentclass[a4paper]{article}
 \usepackage{url}
