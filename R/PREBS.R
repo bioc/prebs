@@ -232,7 +232,7 @@ perform_rma <- function(probe_table, CDF_NAME, output_eset) {
   probe_table <- check_probe_table(probe_table, all_probes_vec)
 
   # Select pm probes in probe_table
-  probe_table_mapped <- probe_table[all_probes_vec,]
+  probe_table_mapped <- probe_table[all_probes_vec,,drop=FALSE]
   row.names(probe_table_mapped) <- row.names(all_probes_vec)
 
   # Create pNList and ngenes input variables
