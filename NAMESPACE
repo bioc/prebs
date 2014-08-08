@@ -1,6 +1,6 @@
 export(calc_prebs)
 importClassesFrom(GenomicRanges,GRanges)
-importClassesFrom(IRanges,Hits)
+importClassesFrom(S4Vectors,Hits)
 importClassesFrom(IRanges,IRanges)
 importFrom(GenomicAlignments,readGAlignmentPairs)
 importFrom(GenomicAlignments,readGAlignmentsFromBam)
