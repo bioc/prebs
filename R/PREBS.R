@@ -26,7 +26,7 @@
 #' @importFrom methods setClass setMethod
 #' @importFrom affy xy2indices
 #' @importClassesFrom GenomicRanges GRanges
-#' @importClassesFrom IRanges IRanges Hits
+#' @importClassesFrom IRanges IRanges
 #' @importMethodsFrom IRanges countOverlaps
 #' @importFrom affy getCdfInfo
 #' @docType package
@@ -87,7 +87,7 @@ granges_from_cdf <- function(probe_mapping_file, CDF_NAME) {
 }
 
 ## Read a single BAM file and count overlaps with probe regions
-read_bam_and_count_overlaps <- function(bam_file, probe_ranges, paired_ended_reads, ignore_strand, count_multiple) {
+read_bam_and_count_overlaps <- function(bam_file, probe_ranges, paired_ended_reads, ignore_strand) {
   #library(GenomicAlignments)
   #library(GenomicRanges)
   if (paired_ended_reads) {
@@ -95,20 +95,13 @@ read_bam_and_count_overlaps <- function(bam_file, probe_ranges, paired_ended_rea
   } else {
     bam_aligns <- readGAlignmentsFromBam(bam_file)
   }
+
   if (! ("X" %in% names(seqlengths(bam_aligns)))) {
     stop("Unrecognized chromosome names. You are probably using a bam file whose reads were mapped to UCSC genome. Currently only bam files with reads mapped to ENSEMBL genome are supported. ENSEMBL reference genomes can be downloaded from ENSEMBL FTP server.")
-  }
-  if (count_multiple) {
-    counts <- countOverlaps(probe_ranges, bam_aligns, ignore.strand=ignore_strand)
-  } else {
-    hits <- findOverlaps(bam_aligns, probe_ranges, ignore.strand=ignore_strand)
-    perm <- sample(length(hits))
-    features <- rep(NA_integer_, queryLength(hits))
-    features[queryHits(hits)[perm]] <- subjectHits(hits)[perm] # If a read overlaps with several probe regions, we pick a random one
-    counts_temp <- tabulate(features)
-    counts <- rep(0, length(probe_ranges))
-    counts[1:length(counts_temp)] <- counts_temp
-  }
+  }  
+
+  counts <- countOverlaps(probe_ranges, bam_aligns, ignore.strand=ignore_strand) 
+
   rm(bam_aligns)
   gc()
   print(paste("Finished:",bam_file))
@@ -116,14 +109,14 @@ read_bam_and_count_overlaps <- function(bam_file, probe_ranges, paired_ended_rea
 }
 
 ## Read all BAM files and calculate read overlaps with probe regions
-count_overlaps_from_bam <- function(bam_files, probe_mapping_file, CDF_NAME, CLUSTER, paired_ended_reads, ignore_strand, count_multiple) {
+count_overlaps_from_bam <- function(bam_files, probe_mapping_file, CDF_NAME, CLUSTER, paired_ended_reads, ignore_strand) {
 
   my_ranges <- granges_from_cdf(probe_mapping_file, CDF_NAME)
   
   if (is.null(CLUSTER)) {
-    counts <- lapply(bam_files, read_bam_and_count_overlaps, probe_ranges=my_ranges, paired_ended_reads=paired_ended_reads, ignore_strand = ignore_strand, count_multiple = count_multiple)
+    counts <- lapply(bam_files, read_bam_and_count_overlaps, probe_ranges=my_ranges, paired_ended_reads=paired_ended_reads, ignore_strand = ignore_strand)
   } else {
-    counts <- parLapply(CLUSTER, bam_files, read_bam_and_count_overlaps, probe_ranges=my_ranges, paired_ended_reads=paired_ended_reads, ignore_strand = ignore_strand, count_multiple = count_multiple)
+    counts <- parLapply(CLUSTER, bam_files, read_bam_and_count_overlaps, probe_ranges=my_ranges, paired_ended_reads=paired_ended_reads, ignore_strand = ignore_strand)
   }
   probe_table <- do.call(cbind, counts)
   colnames(probe_table) <- basename(bam_files)
@@ -310,7 +303,6 @@ perform_rma <- function(probe_table, CDF_NAME, output_eset) {
 #' @param output_eset If set to TRUE, the output of \code{calc_prebs} will be ExpressionSet object. Otherwise, the output will be a data frame.
 #' @param paired_ended_reads Set it to TRUE if your data contains paired-ended reads. Otherwise, the two read mates will be treated as independent units.
 #' @param ignore_strand If set to TRUE, then the strand is ignored while counting read overlaps with probe regions. If you use strand-specific RNA-seq protocol, set to FALSE, otherwise set it to TRUE.
-#' @param count_multiple This parameter controls how the reads that overlap with several probe regions are counted. When count_multiple is set to TRUE, the read is counted for all of the overlapping probe regions, when count_multiple is set to FALSE, the read is counted only for one overlapping probe region (picked up at random from all overlapping ones)
 #' @return ExpressionSet object or a data frame containing PREBS values
 #' @export
 #' @examples 
@@ -353,13 +345,13 @@ perform_rma <- function(probe_table, CDF_NAME, output_eset) {
 #'   prebs_values <- calc_prebs(bam_files, manufacturer_cdf_mapping, cdf_name="hgu133plus2cdf")
 #' }
 
-calc_prebs <- function(bam_files, probe_mapping_file, cdf_name = NULL, cluster = NULL, output_eset=TRUE, paired_ended_reads=FALSE, ignore_strand=TRUE, count_multiple=FALSE) {
+calc_prebs <- function(bam_files, probe_mapping_file, cdf_name = NULL, cluster = NULL, output_eset=TRUE, paired_ended_reads=FALSE, ignore_strand=TRUE) {
   if (is.null(cdf_name)) {
     cdf_name <- cdf_package_name(probe_mapping_file) # Get CDF package name from the filename of cdf mapping file
   }
   check_input(bam_files, probe_mapping_file, cdf_name)
 
-  probe_table <- count_overlaps_from_bam(bam_files, probe_mapping_file, cdf_name, cluster, paired_ended_reads, ignore_strand, count_multiple) # Read bam files and calculate read overlaps with probe regions
+  probe_table <- count_overlaps_from_bam(bam_files, probe_mapping_file, cdf_name, cluster, paired_ended_reads, ignore_strand) # Read bam files and calculate read overlaps with probe regions
   
   probe_table <- sum_duplicates(probe_table) # Sum duplicate row ids. Required only for manufacturer's CDF
 

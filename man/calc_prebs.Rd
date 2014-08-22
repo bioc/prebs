@@ -4,8 +4,7 @@
 \title{Calculate PREBS values}
 \usage{
 calc_prebs(bam_files, probe_mapping_file, cdf_name = NULL, cluster = NULL,
-  output_eset = TRUE, paired_ended_reads = FALSE, ignore_strand = TRUE,
-  count_multiple = FALSE)
+  output_eset = TRUE, paired_ended_reads = FALSE, ignore_strand = TRUE)
 }
 \arguments{
 \item{bam_files}{A vector containing .bam files.}
@@ -21,8 +20,6 @@ calc_prebs(bam_files, probe_mapping_file, cdf_name = NULL, cluster = NULL,
 \item{paired_ended_reads}{Set it to TRUE if your data contains paired-ended reads. Otherwise, the two read mates will be treated as independent units.}
 
 \item{ignore_strand}{If set to TRUE, then the strand is ignored while counting read overlaps with probe regions. If you use strand-specific RNA-seq protocol, set to FALSE, otherwise set it to TRUE.}
-
-\item{count_multiple}{This parameter controls how the reads that overlap with several probe regions are counted. When count_multiple is set to TRUE, the read is counted for all of the overlapping probe regions, when count_multiple is set to FALSE, the read is counted only for one overlapping probe region (picked up at random from all overlapping ones)}
 }
 \value{
 ExpressionSet object or a data frame containing PREBS values

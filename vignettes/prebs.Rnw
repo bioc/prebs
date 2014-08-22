@@ -190,7 +190,7 @@ The main function of the package \calcprebs{} has the following input arguments:
 \textbf{probe\_mapping\_file}, \textbf{cdf\_name} & Probe sequence mappings in a genome ("\texttt{*cdfname*\_mapping.txt}" file) and the name of CDF package  \\
 \textbf{cluster} & Cluster object for parallelization \\
 \textbf{output\_eset} & Option that controls output format (ExpressionSet vs data frame) \\
-\textbf{paired\_ended\_reads}, \textbf{ignore\_strand}, \textbf{count\_multiple} & Options that control the process of counting reads
+\textbf{paired\_ended\_reads}, \textbf{ignore\_strand} & Options that control the process of counting reads
 \end{longtable}
 
 In this section we will discuss all the input requirements in more detail. Note that only two input arguments are mandatory: \texttt{bam\_files} and \texttt{probe\_mapping\_file}. The rest of the arguments are optional and have their default values.
@@ -301,7 +301,7 @@ If you have many input BAM files, processing them can be a computationally expen
 
 \subsection{Read counting options}
 
-\calcprebs{} has a few arguments that control the process of the read counting. Firstly, \texttt{paired\_ended\_reads} ensures the correct treatment of paired-ended reads. If your data contains paired-ended reads, you should set this option to \texttt{TRUE}, otherwise the two mate reads will be treated as independent units. Secondly, \texttt{ignore\_strand} controls whether the strand from which the reads comes should be considered during read-counting. If your data comes from strand-specific RNA-seq protocol, set this option to FALSE, otherwise, leave it at its default value (TRUE). Finally, \texttt{count\_multiple} defines how the reads that overlap with several probe regions should be treated. If it is set to TRUE, then the read is counted for all overlapping probe regions, otherwise, it is counted only for one probe region (picked at random from all overlapping ones). We recommend to leave this option at its default value (FALSE).
+\calcprebs{} has a couple of arguments that control the process of the read counting. \texttt{paired\_ended\_reads} argument ensures the correct treatment of paired-ended reads. If your data contains paired-ended reads, you should set this option to \texttt{TRUE}, otherwise the two mate reads will be treated as independent units. Another argument, \texttt{ignore\_strand} controls whether the strand from which the reads comes should be considered during read-counting. If your data comes from strand-specific RNA-seq protocol, set this option to FALSE, otherwise, leave it at its default value (TRUE).
 
 \section{Session Info}
 
