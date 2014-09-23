@@ -1,0 +1,6 @@
+prebs 1.5.3
+===========
+
+* Introduced new parameter paired_ended_reads. When the data contains paired-ended reads, this parameter should be set to TRUE. Otherwise, the two read mates will be treated as independent units.
+
+* Introduced new parameter ignore_strand. If set to TRUE then the strand from which read comes is ignored when counting overlaps. If you use strand-specific RNA-seq protocol, you should set it to FALSE, otherwise set it to TRUE.
