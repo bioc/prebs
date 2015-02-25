@@ -28,7 +28,7 @@
 
 \section{Abstract}
 
-The \prebs{} package aims at making RNA-sequencing (RNA-seq) data more comparable to microarray data. The comparability is achieved by summarizing sequencing-based expressions of probe regions using a modified version of RMA algorithm \citep{irizarry2003}. The pipeline takes mapped reads in BAM format as an input and produces either gene expressions or original microarray probe set expressions as an output. A more detailed algorithm description can be found in \citep{Uziela2013}.
+The \prebs{} package aims at making RNA-sequencing (RNA-seq) data more comparable to microarray data. The comparability is achieved by summarizing sequencing-based expressions of probe regions using standard microarray summarization algorithms: RPA \citep{lahti2011} or RMA \citep{irizarry2003}. The pipeline takes mapped reads in BAM format as an input and produces either gene expressions or original microarray probe set expressions as an output. A more detailed algorithm description can be found in \citep{Uziela2013}. 
 
 \section{Installation}
 \label{section:Installation}
@@ -76,28 +76,32 @@ manufacturer_cdf_mapping <- system.file(file.path("manufacturer-cdf",
     "HGU133Plus2_mapping.txt"), package="prebsdata")
 @ 
 
-\subsection{Running \calcprebs{} using Custom CDF}
-The \prebs{} package contains only one public function---\calcprebs{}. The most basic usage of \calcprebs{} is running it in Custom CDF mode without parallelization. The default output format of \calcprebs{} is ExpressionSet object defined in \Rpackage{affy} package. The expression values can be accessed using \Rfunction{exprs} function from \Rpackage{affy} package.
+\subsection{Running \calcprebs{} using Custom CDF and RPA summarization method}
+The \prebs{} package contains only one public function---\calcprebs{}. The most basic usage of \calcprebs{} is running it in Custom CDF mode without parallelization. 
+
+\calcprebs{} has to possible microarray summarization methods: \Rfunction{rpa} and \Rfunction{rma}. The summarization mode can be chosen by setting \Rfunction{sum.method} parameter. In this case we do not set the \Rfunction{sum.method} parameter explicitly, so the default mode (\Rfunction{rpa}) is used. 
+
+The default output format of \calcprebs{} is ExpressionSet object defined in \Rpackage{affy} package. The expression values can be accessed using \Rfunction{exprs} function from \Rpackage{Biobase} package.
 
 \begin{Schunk}
 \begin{Sinput}
 > prebs_values <- calc_prebs(bam_files, custom_cdf_mapping1)
 \end{Sinput}
 \begin{Soutput}
-Normalizing
-Calculating Expression
+[1] "Finished: input1.bam"
+[1] "Finished: input2.bam"
 \end{Soutput}
 \begin{Sinput}
 > head(exprs(prebs_values))
 \end{Sinput}
 \begin{Soutput}
                 input1.bam input2.bam
-ENSG00000000003   4.480645   4.035863
-ENSG00000000005 -13.313919 -13.313919
-ENSG00000000419   4.224720   4.224720
-ENSG00000000457   2.611877   4.196825
-ENSG00000000460   2.111514   2.300766
-ENSG00000000938   2.325804   5.073020
+ENSG00000000003   5.796576   5.303558
+ENSG00000000005 -13.300589 -13.300589
+ENSG00000000419   6.136572   5.798032
+ENSG00000000457   4.437882   5.513711
+ENSG00000000460   3.465189   4.499211
+ENSG00000000938   5.542566   6.200779
 \end{Soutput}
 \end{Schunk}
 
@@ -112,6 +116,43 @@ In particular, this example uses Ensembl custom CDF package for and \texttt{HGU1
 And the corresponding description archive containing probe sequence mapping file can be downloaded here:\\
 \url{http://brainarray.mbni.med.umich.edu/Brainarray/Database/CustomCDF/16.0.0/ensg.download/HGU133Plus2_Hs_ENSG_16.0.0.zip}
 
+If you want to save prebs values to a text file, you can run this command:
+
+<< eval=FALSE >>=
+write.table(exprs(prebs_values), file="prebs_values.txt", quote=FALSE)
+@
+
+
+\subsection{Running \calcprebs{} using Custom CDF and RPA summarization method}
+
+Running \calcprebs{} in \Rfunction{rma} mode is very similar to \Rfunction{rpa} mode. All that has to be changed is \Rfunction{sum.method} parameter.
+
+\begin{Schunk}
+\begin{Sinput}
+> prebs_values <- calc_prebs(bam_files, custom_cdf_mapping1, sum.method="rma")
+\end{Sinput}
+\begin{Soutput}
+[1] "Finished: input1.bam"
+[1] "Finished: input2.bam"
+Normalizing
+Calculating Expression
+\end{Soutput}
+\begin{Sinput}
+> head(exprs(prebs_values))
+\end{Sinput}
+\begin{Soutput}
+                input1.bam input2.bam
+ENSG00000000003   5.727919   4.960582
+ENSG00000000005 -13.300589 -13.300589
+ENSG00000000419   6.398204   5.356384
+ENSG00000000457   3.619474   5.194778
+ENSG00000000460   2.858413   3.925149
+ENSG00000000938   5.173077   6.253996
+\end{Soutput}
+\end{Schunk}
+
+The rest of the results in this vignette will be based on the default (\Rfunction{rpa}) mode.
+
 \subsection{Setting \calcprebs{} output format to a data frame}
 
 By default \calcprebs{} outputs an ExpressionSet object with PREBS values. If you prefer to have a data frame as an output, you can set \texttt{output\_eset} option to FALSE.
@@ -121,20 +162,20 @@ By default \calcprebs{} outputs an ExpressionSet object with PREBS values. If yo
 > prebs_values <- calc_prebs(bam_files, custom_cdf_mapping1, output_eset=FALSE)
 \end{Sinput}
 \begin{Soutput}
-Normalizing
-Calculating Expression
+[1] "Finished: input1.bam"
+[1] "Finished: input2.bam"
 \end{Soutput}
 \begin{Sinput}
 > head(prebs_values)
 \end{Sinput}
 \begin{Soutput}
   input1.bam input2.bam              ID
-1   4.480645   4.035863 ENSG00000000003
-2 -13.313919 -13.313919 ENSG00000000005
-3   4.224720   4.224720 ENSG00000000419
-4   2.611877   4.196825 ENSG00000000457
-5   2.111514   2.300766 ENSG00000000460
-6   2.325804   5.073020 ENSG00000000938
+1   5.796314   5.303296 ENSG00000000003
+2 -13.300589 -13.300589 ENSG00000000005
+3   6.136587   5.798048 ENSG00000000419
+4   4.437882   5.513711 ENSG00000000457
+5   3.465243   4.499266 ENSG00000000460
+6   5.542566   6.200779 ENSG00000000938
 \end{Soutput}
 \end{Schunk}
 
@@ -190,7 +231,8 @@ The main function of the package \calcprebs{} has the following input arguments:
 \textbf{probe\_mapping\_file}, \textbf{cdf\_name} & Probe sequence mappings in a genome ("\texttt{*cdfname*\_mapping.txt}" file) and the name of CDF package  \\
 \textbf{cluster} & Cluster object for parallelization \\
 \textbf{output\_eset} & Option that controls output format (ExpressionSet vs data frame) \\
-\textbf{paired\_ended\_reads}, \textbf{ignore\_strand} & Options that control the process of counting reads
+\textbf{paired\_ended\_reads}, \textbf{ignore\_strand} & Options that control the process of counting reads \\
+\textbf{sum.method} & Summarization method ("rpa" or "rma") 
 \end{longtable}
 
 In this section we will discuss all the input requirements in more detail. Note that only two input arguments are mandatory: \texttt{bam\_files} and \texttt{probe\_mapping\_file}. The rest of the arguments are optional and have their default values.
@@ -214,7 +256,9 @@ tophat --transcriptome-only --max-multihits 1 \
 As we have already mentioned \calcprebs{} function requires a probe sequence mapping file and CDF package name as its arguments. For Custom CDF mode, both the mapping file and the package can be downloaded from the Custom CDF website:\\
 \url{http://brainarray.mbni.med.umich.edu/brainarray/Database/CustomCDF/genomic_curated_CDF.asp}
 
-The Custom CDF supports many types of gene identifiers, but in our examples we are using Custom CDF files with Ensembl gene identifiers (version 16.0.0). In the Custom CDF \href{http://brainarray.mbni.med.umich.edu/Brainarray/Database/CustomCDF/16.0.0/ensg.asp}{download page} for each microarray platform you can find both the the Custom CDF package file (denoted by "C") and the Custom CDF description archive (denoted by "O") containing the probe sequence mapping file. 
+The Custom CDF supports many types of gene identifiers, but in our examples we are using Custom CDF files with Ensembl gene identifiers (version 16.0.0). In the Custom CDF \href{http://brainarray.mbni.med.umich.edu/Brainarray/Database/CustomCDF/16.0.0/ensg.asp}{download page} for each microarray platform you can find both the the Custom CDF package file (denoted by "C") and the Custom CDF description archive (denoted by "Z") containing the probe sequence mapping file. 
+
+If you get a message "Note: X probe sequences are missing in \_mapping.txt file." while running \prebs{} in Custom CDF mode, it is probably because the Custom CDF file that you installed and the mapping file have different versions. You can fix this by downloading and installing corresponding Custom CDF package and \_mapping.txt file. However, if you get this message while running \prebs{} in manufacturer's CDF mode, you shouldn't worry too much. You will understand the reason after you read the next section.
 
 The Custom CDF package can be installed like a regular R package (using R CMD INSTALL command). For example, to install hgu133plus2hsensgcdf in Unix-like systems type R CMD INSTALL hgu133plus2hsensgcdf\_16.0.0.tar.gz.
 
@@ -302,6 +346,10 @@ If you have many input BAM files, processing them can be a computationally expen
 \subsection{Read counting options}
 
 \calcprebs{} has a couple of arguments that control the process of the read counting. \texttt{paired\_ended\_reads} argument ensures the correct treatment of paired-ended reads. If your data contains paired-ended reads, you should set this option to \texttt{TRUE}, otherwise the two mate reads will be treated as independent units. Another argument, \texttt{ignore\_strand} controls whether the strand from which the reads comes should be considered during read-counting. If your data comes from strand-specific RNA-seq protocol, set this option to FALSE, otherwise, leave it at its default value (TRUE).
+
+\subsection{Summarization method}
+
+\prebs{} Supports two summarization methods: \Rfunction{rpa} and \Rfunction{rma}. You can set the summarization method using \Rfunction{sum.method} parameter. The default summarization method is \Rfunction{rpa}. Please, note that before \prebs{} version 1.7.1, only \Rfunction{rma} mode was available and it was the default mode. However, we decided to make \Rfunction{rpa} the default mode, because it gives slightly higher RNA-seq--microarray comparability, provided that the data from both platforms is processed using \Rfunction{rpa} method.
 
 \section{Session Info}
 

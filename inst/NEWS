@@ -1,3 +1,8 @@
+prebs 1.7.1
+===========
+
+* Introduced a new parameter sum.method. It is used to choose the microarray summarization mode: RPA or RMA. The default value is RPA.
+
 prebs 1.5.3
 ===========
 

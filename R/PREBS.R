@@ -14,19 +14,25 @@
 #' The prebs package aims at making RNA-sequencing (RNA-seq)
 #' data more comparable to microarray data. The comparability is achieved
 #' by summarizing sequencing-based expressions of probe regions using
-#' a modified version of RMA algorithm. The pipeline takes mapped reads
+#' standard microarray summarization algorithms (RPA or RMA). The pipeline takes mapped reads
 #' in BAM format as an input and produces either gene expressions or
 #' original microarray probe set expressions as an output.
 #'
 #' The package has only one public function: \code{calc_prebs}. 
 #' Type help(calc_prebs) for more information on the usage.
-#' @importFrom GenomicAlignments readGAlignmentsFromBam readGAlignmentPairs
+#' @importFrom GenomicAlignments readGAlignments readGAlignmentPairs
 #' @importFrom stats optim
 #' @importFrom parallel parLapply
 #' @importFrom methods setClass setMethod
 #' @importFrom affy xy2indices
+#' @importFrom RPA rpa
+#' @importFrom Biobase exprs
+#' @importFrom Biobase assayData
+#' @importFrom GenomeInfoDb seqlengths
 #' @importClassesFrom GenomicRanges GRanges
 #' @importClassesFrom IRanges IRanges
+#' @importClassesFrom S4Vectors Rle
+#' @importClassesFrom Biobase ExpressionSet
 #' @importMethodsFrom IRanges countOverlaps
 #' @importFrom affy getCdfInfo
 #' @docType package
@@ -93,7 +99,7 @@ read_bam_and_count_overlaps <- function(bam_file, probe_ranges, paired_ended_rea
   if (paired_ended_reads) {
     bam_aligns <- readGAlignmentPairs(bam_file)
   } else {
-    bam_aligns <- readGAlignmentsFromBam(bam_file)
+    bam_aligns <- readGAlignments(bam_file)
   }
 
   if (! ("X" %in% names(seqlengths(bam_aligns)))) {
@@ -104,7 +110,7 @@ read_bam_and_count_overlaps <- function(bam_file, probe_ranges, paired_ended_rea
 
   rm(bam_aligns)
   gc()
-  print(paste("Finished:",bam_file))
+  print(paste("Finished:",basename(bam_file)))
   return(counts)
 }
 
@@ -137,7 +143,7 @@ fr <- function(x,k) {
 ## different locations. In that case, we have to sum probe region counts from all of these locations.
 sum_duplicates <- function(probe_table) {
   if (sum(duplicated(rownames(probe_table))) > 0) {
-    message("Note: Some probe IDs contain duplicates.\n")
+    message("Note: Some probe IDs contain duplicates. If you are using manufacturer's CDF then you can ignore this message.\n")
     
     unique_row_names <- unique(rownames(probe_table))
     unique_probe_table <- matrix(data=0, nrow=length(unique_row_names), ncol=ncol(probe_table))
@@ -198,7 +204,7 @@ check_probe_table <- function(probe_table, all_probes_vec) {
   pr_names <- rownames(probe_table)
   missing_n <- sum(!is.element(vec_names, pr_names))
   if (missing_n > 0) {
-    message(paste("Note: ", missing_n, " probe sequences are missing in _mapping.txt file.\n", sep=""))
+    message(paste("Note: ", missing_n, " probe sequences are missing in _mapping.txt file. If you are using Custom CDF, the make sure that the _mapping.txt file is from the same Custom CDF version as the package (see the Vignette for details). If you are using manufacturer's CDF then you can ignore this message.\n", sep=""))
     missing_probes <- vec_names[!is.element(vec_names, pr_names)]
     dummy_matrix <- matrix(data=0, nrow=missing_n, ncol=ncol(probe_table))
     for (i in 1:ncol(dummy_matrix)) {
@@ -245,7 +251,7 @@ perform_rma <- function(probe_table, CDF_NAME, output_eset) {
 
   # Select pm probes in probe_table
   probe_table_mapped <- probe_table[all_probes_vec,,drop=FALSE]
-  row.names(probe_table_mapped) <- row.names(all_probes_vec)
+  rownames(probe_table_mapped) <- rownames(all_probes_vec)
 
   # Create pNList and ngenes input variables
   pNList <- sub("(.*_at)[0-9]+","\\1",rownames(probe_table_mapped))
@@ -259,7 +265,9 @@ perform_rma <- function(probe_table, CDF_NAME, output_eset) {
   prebs_values <- .Call("rma_c_complete_copy", probe_table_mapped, pNList, ngenes, normalize, background, bgversion, verbose, PACKAGE = "affy")
 
   # Save the results
-  colnames(prebs_values) <- colnames(probe_table)
+  coln <- colnames(probe_table)
+  coln[duplicated(coln)] <- paste(coln[duplicated(coln)],1:length(coln[duplicated(coln)]), sep="") # rename duplicated columns
+  colnames(prebs_values) <- coln
 
   if (output_eset) {
     rownames(prebs_values) <- substr(rownames(prebs_values), 1, nchar(rownames(prebs_values))-3) # remove trailing _at from identifiers
@@ -273,6 +281,47 @@ perform_rma <- function(probe_table, CDF_NAME, output_eset) {
   return(prebs_values)
 }
 
+perform_rpa <- function(probe_table, CDF_NAME, output_eset) {
+  # Get CDF env to find out what is the maximum probe index
+  cdn <- new("CDFName", CDF_NAME)
+  cdf_env <- getCdfInfo(cdn)  
+  max_ind <- max(sapply(mget(ls(cdf_env), cdf_env), max))
+
+  # Create a full matrix of probe expressions instead of sparse matrix
+  min_value <- min(probe_table)
+  sample_n <- ncol(probe_table)
+  probe_table_full <- matrix(data=min_value,nrow=max_ind, ncol=sample_n)
+  rownames(probe_table_full) <- 1:max_ind
+  colnames(probe_table_full) <- paste("sample", 1:ncol(probe_table_full), sep="") # Avoid duplicate column names in RPA input
+  probe_table_full[rownames(probe_table),] <- probe_table
+
+  # Convert the matrix of probe table expressions to AffyBatch object
+  eset <- ExpressionSet(assayData=probe_table_full, annotation = CDF_NAME)
+  ad <- assayData(eset)
+  abatch <- new("AffyBatch", cdfName = CDF_NAME, assayData=ad)
+  
+  # Apply RPA
+  prebs_values <- rpa(abatch, bg.method="none", cdf=CDF_NAME)
+  prebs_values <- exprs(prebs_values)
+  prebs_values <- prebs_values[substr(rownames(prebs_values),1,4) != "AFFX",] # Remove AFFX probes
+
+  # Save the results
+  coln <- colnames(probe_table)
+  coln[duplicated(coln)] <- paste(coln[duplicated(coln)],1:length(coln[duplicated(coln)]), sep="") # rename duplicated columns
+  colnames(prebs_values) <- coln
+  
+  if (output_eset) {
+    rownames(prebs_values) <- substr(rownames(prebs_values), 1, nchar(rownames(prebs_values))-3) # remove trailing _at from identifiers
+    prebs_values <- new("ExpressionSet", annotation = CDF_NAME, exprs = prebs_values)
+  } else {
+    prebs_values <- as.data.frame(prebs_values)
+    prebs_values$ID <- substr(rownames(prebs_values), 1, nchar(rownames(prebs_values))-3)
+    rownames(prebs_values) <- 1:nrow(prebs_values)
+  }
+
+  return(prebs_values)
+}
+    
 #' @title Calculate PREBS values
 #'
 #' @description
@@ -281,9 +330,15 @@ perform_rma <- function(probe_table, CDF_NAME, output_eset) {
 #' @details
 #' \code{calc_prebs} is the main function of \code{prebs} package that implements the whole
 #' pipeline. The function takes mapped reads in BAM format and probe sequence
-#' mappings as an input. The output depends on \code{output_eset} option. If \code{output_eset=TRUE} then
+#' mappings as an input. 
+#' 
+#' \code{calc_prebs} can run in two modes: \code{rpa} and \code{rma}. RMA is the classical 
+#' microarray summarization algorithm developed by R. A. Irizarry et al. (2003), while RPA is a newer algorithm that was developed by
+#' L. Lahti et al. (2011). The default mode is \code{rpa}. NOTE: before \code{prebs} version 1.7.1 only RMA mode was available. 
+#'
+#' The output format depends on \code{output_eset} option. If \code{output_eset=TRUE} then
 #' \code{calc_prebs} returns ExpressionSet object  (ExpressionSet object is defined in
-#' \code{affy} package). Otherwise it returns a data frame containing PREBS values.
+#' \code{affy} package). Otherwise, it returns a data frame containing PREBS values.
 #'
 #' For running \code{calc_prebs} with custom CDF, the custom CDF package has to be 
 #' downloaded and installed from Custom CDF website:   
@@ -299,6 +354,7 @@ perform_rma <- function(probe_table, CDF_NAME, output_eset) {
 #' @param bam_files A vector containing .bam files.
 #' @param probe_mapping_file A file containing probe mappings in the genome. 
 #' @param cdf_name A name of CDF package to use in RMA algorithm. If cdf_name=NULL, the package name is inferred from the name of probe_mapping_file ("HGU133Plus2_Hs_ENSG_mapping.txt" -> "hgu133plus2hsensgcdf")
+#' @param sum.method Microarray summarization method to be used. Can be either \code{rpa} or \code{rma}. The default mode is \code{rpa}.
 #' @param cluster A cluster object created using "makeCluster" function from "parellel" package. If cluster=NULL, no parallelization is used.
 #' @param output_eset If set to TRUE, the output of \code{calc_prebs} will be ExpressionSet object. Otherwise, the output will be a data frame.
 #' @param paired_ended_reads Set it to TRUE if your data contains paired-ended reads. Otherwise, the two read mates will be treated as independent units.
@@ -318,10 +374,14 @@ perform_rma <- function(probe_table, CDF_NAME, output_eset) {
 #'   manufacturer_cdf_mapping <- system.file(file.path("manufacturer-cdf", "HGU133Plus2_mapping.txt"), 
 #'                                           package="prebsdata")
 #'   if (interactive()) {
-#'     # Run PREBS using custom CDF without parallelization
+#'     # Run PREBS using custom CDF without parallelization ("rpa" mode)
 #'     prebs_values <- calc_prebs(bam_files, custom_cdf_mapping1)
 #'     head(exprs(prebs_values))
-#'  
+#'
+#'     # Run PREBS using custom CDF without parallelization ("rma" mode)
+#'     prebs_values <- calc_prebs(bam_files, custom_cdf_mapping1, sum.method="rma")
+#'     head(exprs(prebs_values))
+#'
 #'     # Run PREBS using custom CDF with parallelization
 #'     library(parallel)
 #'     N_CORES = 2
@@ -345,7 +405,7 @@ perform_rma <- function(probe_table, CDF_NAME, output_eset) {
 #'   prebs_values <- calc_prebs(bam_files, manufacturer_cdf_mapping, cdf_name="hgu133plus2cdf")
 #' }
 
-calc_prebs <- function(bam_files, probe_mapping_file, cdf_name = NULL, cluster = NULL, output_eset=TRUE, paired_ended_reads=FALSE, ignore_strand=TRUE) {
+calc_prebs <- function(bam_files, probe_mapping_file, cdf_name = NULL, cluster = NULL, output_eset=TRUE, paired_ended_reads=FALSE, ignore_strand=TRUE, sum.method="rpa") {
   if (is.null(cdf_name)) {
     cdf_name <- cdf_package_name(probe_mapping_file) # Get CDF package name from the filename of cdf mapping file
   }
@@ -357,8 +417,14 @@ calc_prebs <- function(bam_files, probe_mapping_file, cdf_name = NULL, cluster =
 
   probe_table <- probe_table_expressions(probe_table) # Convert raw probe region counts to probe region expressions using statistical model
   
-  prebs_values <- perform_rma(probe_table, cdf_name, output_eset) # Perform RMA on probe region expressions
-  
+  if (sum.method == "rma") {
+    prebs_values <- perform_rma(probe_table, cdf_name, output_eset) # Perform RMA on probe region expressions
+  } else if (sum.method == "rpa") {
+    prebs_values <- perform_rpa(probe_table, cdf_name, output_eset)
+  } else {
+    stop("Invalid sum.method parameter. Has to be either 'rma' or 'rpa'")
+  }
+
   return(prebs_values)
 }
 
