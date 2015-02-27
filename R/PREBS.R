@@ -33,6 +33,10 @@
 #' @importClassesFrom IRanges IRanges
 #' @importClassesFrom S4Vectors Rle
 #' @importClassesFrom Biobase ExpressionSet
+#' @importFrom GenomicRanges GRanges
+#' @importFrom IRanges IRanges
+#' @importFrom S4Vectors Rle
+#' @importFrom Biobase ExpressionSet
 #' @importMethodsFrom IRanges countOverlaps
 #' @importFrom affy getCdfInfo
 #' @docType package
