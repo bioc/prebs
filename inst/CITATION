@@ -2,13 +2,16 @@ citEntry(entry="Article",
   header="The `prebs` package should be cited as:",
   author = "Karolis Uziela and Antti Honkela",
   title = "Probe region expression estimation for {RNA-seq} data for improved microarray comparability",
-  journal = "arXiv:1304.1698",
-  year = "2013",
-  url = "http://arxiv.org/abs/1304.1698",
+  journal = "PLoS ONE",
+  volume = "10",
+  issue = "5",
+  pages = "e0126545",
+  year = "2015",
+  doi = "10.1371/journal.pone.0126545",
+  url = "http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0126545",
   textVersion = paste(
     "Karolis Uziela and Antti Honkela",
     "Probe region expression estimation for RNA-seq data for improved microarray comparability",
-    "arXiv:1304.1698"
+    "PLoS ONE 10(5): e0126545. doi:10.1371/journal.pone.0126545"
   )
 )
-
