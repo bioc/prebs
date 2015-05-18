@@ -7,7 +7,7 @@ citEntry(entry="Article",
   issue = "5",
   pages = "e0126545",
   year = "2015",
-  doi = "10.1371/journal.pone.0126545"
+  doi = "10.1371/journal.pone.0126545",
   url = "http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0126545",
   textVersion = paste(
     "Karolis Uziela and Antti Honkela",
