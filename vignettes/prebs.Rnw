@@ -56,6 +56,7 @@ Here we will cover a few simple examples of running \prebs{} in two modes: Custo
 To load the package start R and run
 <<>>=
 library(prebs)
+library(prebsdata)
 @ 
 
 The data for our examples is contained in \Rpackage{prebsdata} package. The data package contains two sample BAM files, 3 Custom CDF probe sequence mapping files and 3 manufacturer's CDF probe sequence mapping files. We will use only 2 Custom CDF and 1 manufacturer's CDF probe sequence mapping file in our examples.
