@@ -350,8 +350,8 @@ perform_rpa <- function(probe_table, CDF_NAME, output_eset) {
 #'
 #' For running \code{calc_prebs} with manufacturer's CDF, the manufacturer's CDF package 
 #' can be installed from Bioconductor, for example:
-#' biocLite("GenomicRanges"); 
-#' biocLite("hgu133plus2cdf")
+#' BiocManager::install("GenomicRanges"); 
+#' BiocManager::install("hgu133plus2cdf")
 #'
 #' For a detailed input specification, please refer to the \code{prebs} vignette.
 #'
