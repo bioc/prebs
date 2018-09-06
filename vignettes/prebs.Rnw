@@ -33,7 +33,7 @@ The \prebs{} package aims at making RNA-sequencing (RNA-seq) data more comparabl
 \section{Installation}
 \label{section:Installation}
 
-\prebs{} can be installed from the the bioconductor using \Rfunction{biocLite} function. This ensures that all of the package dependencies are met.
+\prebs{} can be installed from Bioconductor using the \Rfunction{BiocManager::install} function. This ensures that all of the package dependencies are met.
 
 << eval=FALSE >>=
 if (!requireNamespace("BiocManager", quietly=TRUE))
@@ -41,7 +41,7 @@ if (!requireNamespace("BiocManager", quietly=TRUE))
 BiocManager::install("prebs")
 @
 
-\prebsdata{} package that is needed to run the examples in this vignette is also available from the bioconductor.
+\prebsdata{} package that is needed to run the examples in this vignette is also available from Bioconductor.
 
 << eval=FALSE >>=
 if (!requireNamespace("BiocManager", quietly=TRUE))
