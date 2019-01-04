@@ -8,7 +8,7 @@ Description: The prebs package aims at making RNA-sequencing (RNA-seq)
         takes mapped reads in BAM format as an input and produces
         either gene expressions or original microarray probe set
         expressions as an output.
-Version: 1.23.0
+Version: 1.23.1
 Author: Karolis Uziela and Antti Honkela
 Maintainer: Karolis Uziela <karolis.uziela@scilifelab.se>
 Depends: R (>= 2.14.0), GenomicAlignments, affy, RPA
@@ -16,5 +16,5 @@ Imports: parallel, methods, stats, GenomicRanges (>= 1.13.3), IRanges, Biobase, 
 Suggests: prebsdata, hgu133plus2cdf, hgu133plus2probe
 License: Artistic-2.0
 Collate: 'PREBS.R'
-biocViews: Microarray, RNASeq, Sequencing, GeneExpression,
+biocViews: ImmunoOncology, Microarray, RNASeq, Sequencing, GeneExpression,
         Preprocessing
